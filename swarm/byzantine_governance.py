@@ -1,41 +1,40 @@
+import hashlib
 import random
-import time
 
-class ByzantineConsensusProtocol:
-    def __init__(self, node_count, byzantine_threshold):
-        self.node_count = node_count
-        self.byzantine_threshold = byzantine_threshold
-        self.node_states = [0] * node_count
-        self.round = 0
+class ByzantineGovernance:
+    def __init__(self, num_nodes, f):
+        self.num_nodes = num_nodes
+        self.f = f
+        self.quorum_size = num_nodes - f
 
-    def run_round(self):
-        self.round += 1
-        print(f'Starting round {self.round}')
+    def propose_block(self, transactions):
+        # Generate a new block proposal
+        block = {
+            'transactions': transactions,
+            'timestamp': time.time(),
+            'proposer': random.randint(0, self.num_nodes - 1)
+        }
+        block_hash = self.hash_block(block)
+        return block, block_hash
 
-        # Byzantine nodes send random values
-        byzantine_nodes = random.sample(range(self.node_count), self.byzantine_threshold)
-        for node in byzantine_nodes:
-            self.node_states[node] = random.randint(0, 1)
-            print(f'Byzantine node {node} sent value {self.node_states[node]}')
+    def validate_block(self, block, block_hash):
+        # Validate the proposed block
+        if self.hash_block(block) != block_hash:
+            return False
 
-        # Non-Byzantine nodes send their current state
-        for node in range(self.node_count):
-            if node not in byzantine_nodes:
-                print(f'Node {node} sent value {self.node_states[node]}')
+        # Check for quorum agreement
+        votes = [0] * self.num_nodes
+        for i in range(self.num_nodes):
+            # Simulate voting by each node
+            if random.random() < 0.8:
+                votes[i] = 1
 
-        # Nodes collect values and apply majority rule
-        value_counts = [0, 0]
-        for node_state in self.node_states:
-            value_counts[node_state] += 1
-        new_state = 0 if value_counts[0] > value_counts[1] else 1
-        print(f'New state: {new_state}')
+        if sum(votes) >= self.quorum_size:
+            return True
+        else:
+            return False
 
-        # Update node states
-        for node in range(self.node_count):
-            self.node_states[node] = new_state
-
-# Example usage
-protocol = ByzantineConsensusProtocol(node_count=10, byzantine_threshold=3)
-for _ in range(10):
-    protocol.run_round()
-    time.sleep(1)
+    def hash_block(self, block):
+        # Hash the block using SHA-256
+        block_string = str(block).encode('utf-8')
+        return hashlib.sha256(block_string).hexdigest()
